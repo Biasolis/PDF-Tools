@@ -1,20 +1,25 @@
-# --- Estágio 1: Construção ---
-# Usamos a imagem oficial e leve do Nginx baseada no Alpine Linux.
-FROM nginx:stable-alpine
+# --- Estágio 1: Build ---
+# Começamos com uma imagem oficial do Node.js. Use a versão que você usa em desenvolvimento.
+# node:18-alpine é uma boa escolha por ser leve.
+FROM node:18-alpine
 
 # Define o diretório de trabalho dentro do contêiner.
-# Este é o diretório padrão onde o Nginx procura por arquivos para servir.
-WORKDIR /usr/share/nginx/html
+WORKDIR /app
 
-# Remove o arquivo de boas-vindas padrão do Nginx.
-RUN rm /usr/share/nginx/html/index.html
+# Copia os arquivos package.json e package-lock.json primeiro.
+# Isso aproveita o cache do Docker: se esses arquivos não mudarem, o passo 'npm install' não será executado novamente.
+COPY package*.json ./
 
-# Copia todos os arquivos da sua pasta de projeto (o '.') para o diretório de trabalho no contêiner.
-# Suas pastas 'css/' e 'js/' e o arquivo 'index.html' serão copiados.
+# Instala as dependências do projeto definidas no package.json.
+RUN npm install
+
+# Copia o resto do código da sua aplicação para o diretório de trabalho.
 COPY . .
 
-# Expõe a porta 80, que é a porta padrão que o Nginx usa para HTTP.
-EXPOSE 80
+# Expõe a porta em que sua aplicação está rodando.
+# A porta 3000 é um padrão comum para Express.js. Verifique seu arquivo server.js!
+EXPOSE 3000
 
-# O comando para iniciar o servidor Nginx quando o contêiner for executado.
-# A imagem base do Nginx já cuida disso, então não precisamos de um CMD explícito.
+# O comando para iniciar sua aplicação quando o contêiner for executado.
+# Substitua 'server.js' pelo nome do seu arquivo de entrada principal, se for diferente.
+CMD [ "node", "server.js" ]
