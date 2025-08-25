@@ -1,0 +1,2 @@
+# Ignorar a pasta de dependências do Node.js
+/node_modules
