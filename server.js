@@ -12,7 +12,7 @@ app.set('views', path.join(__dirname, 'views'));
 // Servir arquivos estáticos (CSS, JS, imagens) da pasta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Usar as rotas definidas em pdfRoutes.js
+// Usar as rotas definidas em pdfRoutes.js para todas as requisições
 app.use('/', pdfRoutes);
 
 app.listen(PORT, () => {

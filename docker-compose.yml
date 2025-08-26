@@ -1,11 +1,29 @@
 version: '3.8'
 
 services:
+  # Serviço da sua aplicação Node.js
   pdf-tools:
     build: .
-    ports:
-      - "3000:3000"
+    # A porta 3000 NÃO é mais exposta para o host,
+    # apenas para a rede interna do Docker.
     volumes:
       - .:/app
+      - /app/node_modules
+    shm_size: '2gb'
     environment:
       - NODE_ENV=production
+    restart: always
+
+  # Novo serviço para o proxy Nginx
+  nginx:
+    image: nginx:stable-alpine
+    # Mapeia a porta 80 do host para a porta 80 do contêiner Nginx
+    ports:
+      - "80:80"
+    volumes:
+      # Monta o arquivo de configuração que criamos para dentro do contêiner
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # Garante que o contêiner da aplicação inicie ANTES do Nginx
+    depends_on:
+      - pdf-tools
+    restart: always
