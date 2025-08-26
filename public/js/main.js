@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const button = document.getElementById(`${toolId}-button`);
         const status = document.getElementById(`${toolId}-status`);
         
+        if (!button) return; // Se o botão não existir, não faz nada
+
         button.addEventListener('click', async () => {
             const files = input.files;
             if (files.length === 0) {
@@ -14,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const formData = new FormData();
             
-            // CORREÇÃO APLICADA AQUI: A URL agora é criada corretamente (ex: /unir-pdf)
+            // A URL do endpoint é o ID da ferramenta, ex: /unir-pdf
             const endpoint = `/${toolId}`;
 
             // Lida com múltiplos arquivos para a ferramenta de unir
@@ -58,11 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Configura todas as 4 ferramentas
+    // Configura todas as 5 ferramentas
     setupTool('unir-pdf');
     setupTool('comprimir-pdf');
     setupTool('docx-para-pdf');
     setupTool('pdf-para-docx');
+    setupTool('pdf-para-pdfa');
 
     // Funções de Ajuda (showStatus, createDownloadLink)
     function showStatus(element, message, type) {

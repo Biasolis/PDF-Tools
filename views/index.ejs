@@ -45,6 +45,17 @@
                     <button id="pdf-para-docx-button" class="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition-colors">Extrair Texto</button>
                     <div id="pdf-para-docx-status" class="text-center min-h-[2rem]"></div>
                 </section>
+
+                <section id="pdf-para-pdfa-card" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.493a9 9 0 11-12.728 0 9 9 0 0112.728 0z"></path></svg>
+                        <h2 class="text-xl font-semibold text-gray-700">Converter para PDF/A</h2>
+                    </div>
+                    <p class="text-gray-500 text-sm">Converta um PDF padrão para o formato PDF/A, ideal para arquivamento e conformidade.</p>
+                    <input type="file" id="pdf-para-pdfa-input" accept=".pdf" class="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                    <button id="pdf-para-pdfa-button" class="w-full bg-teal-500 text-white py-2 rounded-lg hover:bg-teal-600 transition-colors">Converter Agora</button>
+                    <div id="pdf-para-pdfa-status" class="text-center min-h-[2rem]"></div>
+                </section>
             </div>
 
 <%- include('partials/footer'); %>

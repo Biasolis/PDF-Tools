@@ -1,7 +1,7 @@
 {
   "name": "ferramenta-pdf",
   "version": "1.0.0",
-  "description": "Ferramenta completa para manipulação de arquivos PDF e DOCX.",
+  "description": "PDF - Tools",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
