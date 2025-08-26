@@ -1,25 +1,23 @@
-# --- Estágio 1: Build ---
-# Começamos com uma imagem oficial do Node.js. Use a versão que você usa em desenvolvimento.
-# node:18-alpine é uma boa escolha por ser leve.
-FROM node:18-alpine
+# Use Node 18
+FROM node:18
 
-# Define o diretório de trabalho dentro do contêiner.
+# Diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos package.json e package-lock.json primeiro.
-# Isso aproveita o cache do Docker: se esses arquivos não mudarem, o passo 'npm install' não será executado novamente.
-COPY package*.json ./
+# Atualiza pacotes e instala Ghostscript
+RUN apt-get update && apt-get install -y \
+    ghostscript \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instala as dependências do projeto definidas no package.json.
+# Copia package.json e package-lock.json e instala dependências
+COPY package*.json ./
 RUN npm install
 
-# Copia o resto do código da sua aplicação para o diretório de trabalho.
+# Copia o restante do código
 COPY . .
 
-# Expõe a porta em que sua aplicação está rodando.
-# A porta 3000 é um padrão comum para Express.js. Verifique seu arquivo server.js!
+# Exponha a porta interna do Node
 EXPOSE 3000
 
-# O comando para iniciar sua aplicação quando o contêiner for executado.
-# Substitua 'server.js' pelo nome do seu arquivo de entrada principal, se for diferente.
-CMD [ "node", "server.js" ]
+# Comando para iniciar a aplicação
+CMD ["node", "server.js"]
