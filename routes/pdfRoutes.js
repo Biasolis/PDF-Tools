@@ -77,14 +77,44 @@ router.post('/docx-para-pdf', upload.single('file'), async (req, res) => {
 
 // Rota para Converter PDF para DOCX (extração de texto)
 router.post('/pdf-para-docx', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    }
     try {
+        console.log('Servidor: Iniciando extração de texto do PDF...');
+
+        // 1. Extrai o texto puro usando pdf-parse (isto continua igual)
         const data = await pdfParse(req.file.buffer);
-        const docxFileName = req.file.originalname.replace(/\.pdf$/, '.docx');
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        res.setHeader('Content-Disposition', `attachment; filename=${docxFileName}`);
-        res.send(data.text);
-    } catch (e) { res.status(500).json({ error: 'Erro ao extrair texto do PDF.' }); }
+        const extractedText = data.text;
+
+        // 2. [NOVO] Cria um conteúdo HTML simples envolvendo o texto extraído
+        //    Substituímos as quebras de linha por tags <br> para manter a formatação
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8"></head>
+            <body>
+                <p>${extractedText.replace(/\n/g, '<br>')}</p>
+            </body>
+            </html>
+        `;
+
+        // Define o nome do arquivo com a extensão .doc
+        const docFileName = req.file.originalname.replace(/\.pdf$/, '.doc');
+
+        // 3. [ALTERADO] Define os cabeçalhos para o formato .doc (MS Word)
+        res.setHeader('Content-Type', 'application/msword');
+        res.setHeader('Content-Disposition', `attachment; filename=${docFileName}`);
+        
+        // 4. Envia o conteúdo HTML, que o Word irá interpretar e abrir corretamente
+        res.send(htmlContent);
+
+        console.log('Servidor: Extração de texto concluída.');
+
+    } catch (error) {
+        console.error('Servidor: Erro ao extrair texto do PDF:', error);
+        res.status(500).json({ error: 'Ocorreu um erro ao extrair texto do PDF.' });
+    }
 });
 
 module.exports = router;
