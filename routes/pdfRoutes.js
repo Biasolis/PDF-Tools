@@ -72,42 +72,67 @@ router.post('/comprimir-pdf', upload.single('file'), (req, res) => {
     });
 });
 
-// Rota para Converter DOCX para PDF (Versão Corrigida e Mais Robusta)
+// Rota para Converter DOCX para PDF (Versão Final e Mais Robusta)
 router.post('/docx-para-pdf', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     }
 
     let browser = null;
+    // [NOVO] Define o caminho do arquivo HTML temporário
+    const tempHtmlPath = path.join(__dirname, `temp_conversion_${Date.now()}.html`);
+
     try {
+        console.log('Servidor: Iniciando conversão DOCX > HTML...');
         const { value: html } = await mammoth.convertToHtml({ buffer: req.file.buffer });
+        console.log(`Servidor: HTML gerado com ${html.length} caracteres.`);
+
+        // 1. [NOVO] Salva o HTML em um arquivo temporário
+        fs.writeFileSync(tempHtmlPath, html);
         
+        console.log('Servidor: Iniciando Puppeteer...');
         browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
         const page = await browser.newPage();
         
-        await page.goto(`data:text/html;charset=UTF-8,${encodeURIComponent(html)}`, {
+        // 2. [ALTERADO] Puppeteer agora abre o ARQUIVO HTML local
+        // Isso é muito mais estável do que usar um Data URI
+        await page.goto(`file://${tempHtmlPath}`, {
             waitUntil: 'networkidle0'
         });
 
+        console.log('Servidor: Gerando o buffer do PDF...');
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: { top: '1in', right: '1in', bottom: '1in', left: '1in' }
+            margin: { top: '2.5cm', right: '2.5cm', bottom: '2.5cm', left: '2.5cm' }
         });
+        console.log(`Servidor: Buffer do PDF gerado com ${pdfBuffer.length} bytes.`);
+
+        if (pdfBuffer.length === 0) {
+            throw new Error("O buffer do PDF gerado está vazio.");
+        }
 
         const pdfFileName = req.file.originalname.replace(/\.docx?$/, '.pdf');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=${pdfFileName}`);
         res.send(pdfBuffer);
+
     } catch (error) {
         console.error('Servidor: Erro ao converter DOCX para PDF:', error);
         res.status(500).json({ error: 'Ocorreu um erro interno ao converter o arquivo.' });
     } finally {
+        // 3. [IMPORTANTE] Garante que o navegador e o arquivo temporário sejam sempre removidos
         if (browser) {
             await browser.close();
+            console.log('Servidor: Navegador Puppeteer fechado.');
+        }
+        if (fs.existsSync(tempHtmlPath)) {
+            fs.unlinkSync(tempHtmlPath);
+            console.log('Servidor: Arquivo HTML temporário removido.');
         }
     }
 });
+
 
 // Rota para Converter PDF para DOCX (extração de texto)
 router.post('/pdf-para-docx', upload.single('file'), async (req, res) => {
