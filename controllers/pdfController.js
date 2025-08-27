@@ -113,6 +113,55 @@ exports.converterDocxParaPdf = async (req, res) => {
             lineHeight: 15,
         });
 
+        // --- NOVA ROTA PARA CONVERTER PDF PARA PDF/A ---
+router.post('/pdf-para-pdfa', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    }
+
+    // Criamos arquivos temporários para o Ghostscript processar
+    const tempInputPath = path.join(__dirname, `temp_input_${Date.now()}.pdf`);
+    const tempOutputPath = path.join(__dirname, `temp_output_${Date.now()}.pdf`);
+
+    // Escreve o buffer do arquivo enviado para um arquivo temporário
+    fs.writeFileSync(tempInputPath, req.file.buffer);
+
+    // Comando do Ghostscript para converter para PDF/A-2b
+    // -dPDFA=2: Define o nível de conformidade com PDF/A-2.
+    // -sColorConversionStrategy=UseDeviceIndependentColor: Essencial para PDF/A.
+    // PDFA_def.ps: Arquivo de definição que vem com o Ghostscript para garantir a conformidade.
+    const command = `
+        gs -dPDFA=2 -dBATCH -dNOPAUSE -sDEVICE=pdfwrite \
+        -sColorConversionStrategy=UseDeviceIndependentColor \
+        -sOutputFile=${tempOutputPath} \
+        /usr/share/ghostscript/9.55.0/lib/PDFA_def.ps \
+        ${tempInputPath}
+    `;
+
+    exec(command, (error) => {
+        // Limpeza: sempre apague os arquivos temporários
+        fs.unlinkSync(tempInputPath);
+
+        if (error) {
+            console.error('Erro do Ghostscript na conversão para PDF/A:', error);
+            // Se o arquivo de saída foi criado, apague-o também em caso de erro
+            if (fs.existsSync(tempOutputPath)) {
+                fs.unlinkSync(tempOutputPath);
+            }
+            return res.status(500).json({ error: 'Erro ao converter para PDF/A. O arquivo pode não ser compatível.' });
+        }
+
+        // Se a conversão foi bem-sucedida, leia o arquivo de saída
+        const pdfBuffer = fs.readFileSync(tempOutputPath);
+        fs.unlinkSync(tempOutputPath); // Apaga o arquivo de saída após a leitura
+
+        const pdfaFileName = req.file.originalname.replace(/\.pdf$/, '_pdfa.pdf');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${pdfaFileName}`);
+        res.send(pdfBuffer);
+    });
+});
+
         const pdfBytes = await pdfDoc.save();
         res.setHeader('Content-Disposition', 'attachment; filename="documento.pdf"');
         res.setHeader('Content-Type', 'application/pdf');
