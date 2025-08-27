@@ -2,16 +2,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
-                <section id="unir-pdf-card" class="bg-white p-6 rounded-xl shadow-md space-y-4">
-                    <div class="flex items-center space-x-3">
-                        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                        <h2 class="text-xl font-semibold text-gray-700">Unir PDFs</h2>
-                    </div>
-                    <p class="text-gray-500 text-sm">Combine múltiplos arquivos PDF em um único documento de forma rápida e segura.</p>
-                    <input type="file" id="unir-pdf-input" multiple accept=".pdf" class="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <button id="unir-pdf-button" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">Unir Agora</button>
-                    <div id="unir-pdf-status" class="text-center min-h-[2rem]"></div>
-                </section>
+                <section id="unir-pdf-card" class="bg-white p-6 rounded-xl shadow-md space-y-4 md:col-span-2">
+    <div class="flex items-center space-x-3">
+        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        <h2 class="text-xl font-semibold text-gray-700">Unir PDFs</h2>
+    </div>
+    <p class="text-gray-500 text-sm">Selecione múltiplos arquivos PDF. Arraste e solte as pré-visualizações para reordenar.</p>
+    
+    <div id="pdf-preview-area" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 border-2 border-dashed rounded-lg min-h-[160px]">
+        </div>
+
+    <div class="flex items-center justify-center space-x-4 pt-4">
+        <label for="unir-pdf-input" class="cursor-pointer bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+            Adicionar Arquivos
+        </label>
+        <input type="file" id="unir-pdf-input" multiple accept=".pdf" class="hidden">
+        
+        <button id="unir-pdf-button" class="bg-blue-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+            Unir PDFs
+        </button>
+    </div>
+    <div id="unir-pdf-status" class="text-center min-h-[2rem]"></div>
+</section>
 
                 <section id="comprimir-pdf-card" class="bg-white p-6 rounded-xl shadow-md space-y-4">
                     <div class="flex items-center space-x-3">

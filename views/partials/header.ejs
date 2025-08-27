@@ -6,6 +6,17 @@
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+    <style>
+        .loader{/*...*/}
+        /* Estilo para o placeholder da área de drag-and-drop */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #c0d9ff;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased text-gray-900">
     <div class="container mx-auto p-4 md:p-8 max-w-6xl">
