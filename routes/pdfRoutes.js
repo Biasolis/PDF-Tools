@@ -130,7 +130,7 @@ router.post('/pdf-para-pdfa', upload.single('file'), (req, res) => {
     fs.writeFileSync(tempInputPath, req.file.buffer);
 
     // O caminho para PDFA_def.ps pode variar, mas este é o padrão para a versão do Ghostscript no Debian/Ubuntu
-    const command = `gs -dPDFA=2 -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sColorConversionStrategy=UseDeviceIndependentColor -sOutputFile=${tempOutputPath} /usr/share/ghostscript/9.55.0/lib/PDFA_def.ps ${tempInputPath}`;
+    const command = `gs -dPDFA=2 -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sColorConversionStrategy=UseDeviceIndependentColor -sOutputFile=${tempOutputPath} /usr/share/ghostscript/10.00.0/lib/PDFA_def.ps ${tempInputPath}`;
 
     exec(command, (error) => {
         fs.unlinkSync(tempInputPath);
