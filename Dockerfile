@@ -2,12 +2,13 @@
 FROM node:18-slim
 WORKDIR /app
 
-# Evita que o npm instale o Chromium, pois vamos instalar via apt-get
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Instala todas as dependências do sistema
 RUN apt-get update && apt-get install -y \
     ghostscript \
+    poppler-utils \
+    imagemagick \
     wget \
     gnupg \
     ca-certificates \
@@ -26,7 +27,8 @@ RUN apt-get update && apt-get install -y \
     && sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list' \
     && apt-get update \
     && apt-get install -y google-chrome-stable --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>//g' /etc/ImageMagick-6/policy.xml
 
 COPY package*.json ./
 RUN npm install
