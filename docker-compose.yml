@@ -1,23 +1,14 @@
-# Arquivo: docker-compose.yml (Corrigido)
+version: '3.8' # Adicionado para boas práticas
+
 services:
   pdf-tools:
     build: .
+    ports: # Linha adicionada para expor a porta
+      - "3000:3000"
     volumes:
       - .:/app
       - /app/node_modules
     shm_size: '2gb'
     environment:
       - NODE_ENV=production
-    restart: always
-
-  nginx:
-    image: nginx:stable-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - pdf-tools
     restart: always
