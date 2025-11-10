@@ -1,81 +1,53 @@
 // Arquivo: routes/pdfRoutes.js
-// Atualizado para adicionar o middleware express.json() localmente.
+// Versão final consolidando V1 (ferramentas) e V2 (editor), com correção para nomes de arquivo
 
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { PDFDocument } = require('pdf-lib');
+const mammoth = require('mammoth');
+const puppeteer = require('puppeteer');
+const pdfParse = require('pdf-parse');
+const { exec } = require('child_process');
+const { zip } = require('zip-a-folder');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { processTool } = require('../services/pdfProcessor'); // Importa o serviço
 
-// Cria um parser JSON SÓ PARA AS ROTAS QUE PRECISAM DELE
-const jsonParser = express.json();
+// --- Helpers ---
+function cleanFileName(fileName) {
+    if (!fileName) return '';
+    return fileName.replace(/_unido_.*|_comprimido_.*|_pdfa_.*|_separado_.*|_jpg_.*|_convertido_.*/i, '');
+}
+
+function runExec(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Exec Error for command "${command}":`, stderr);
+                return reject(error);
+            }
+            resolve(stdout);
+        });
+    });
+}
 
 // --- Configuração ---
 const uploadDir = path.join(__dirname, '..', 'uploads');
-const documentsDir = path.join(__dirname, '..', 'documents'); // Para WOPI
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
-const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hora
-
-// Cria diretórios se não existirem (feito na inicialização)
+const documentsDir = path.join(__dirname, '..', 'documents');
 fs.mkdirSync(uploadDir, { recursive: true });
 fs.mkdirSync(documentsDir, { recursive: true });
 
-// Configuração do Multer (armazenamento em disco)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const sessionPath = path.join(uploadDir, req.params.sessionId);
-        cb(null, sessionPath); // Passa o caminho DIRETAMENTE e SINCRONAMENTE
+        fs.mkdirSync(sessionPath, { recursive: true });
+        cb(null, sessionPath);
     },
-    filename: (req, file, cb) => {
-         // Sanitiza nome original e adiciona timestamp
-         const safeOriginalName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_').substring(0, 100);
-         cb(null, `${Date.now()}-${safeOriginalName}`);
-    }
+    filename: (req, file, cb) => cb(null, file.originalname)
 });
-
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: MAX_FILE_SIZE },
-    fileFilter: (req, file, cb) => {
-        // Validação de tipo de arquivo
-        const allowedTypes = [
-            'application/pdf', 
-            'application/msword', 
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-            'image/jpeg', 
-            'image/png', 
-            'application/vnd.ms-excel', 
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        ];
-        if (allowedTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            console.warn(`[${req.params.sessionId}] Upload rejeitado: tipo de arquivo inválido - ${file.mimetype} (${file.originalname})`);
-            cb(new Error(`Tipo de arquivo não suportado: ${file.mimetype}`), false);
-        }
-    }
-});
-
-// Gerenciamento de status de jobs em memória
+const upload = multer({ storage: storage });
 const jobs = new Map();
-
-// Middleware para validar sessão
-const validateSession = (req, res, next) => {
-    const { sessionId } = req.params;
-    if (!sessionId || !jobs.has(sessionId)) {
-         console.warn(`Tentativa de acesso à sessão inválida ou expirada: ${sessionId}`);
-        return res.status(404).json({ error: 'Sessão não encontrada ou expirada.' });
-    }
-    const sessionPath = path.join(uploadDir, sessionId);
-    if (!fs.existsSync(sessionPath)) {
-        console.warn(`[${sessionId}] Diretório da sessão não encontrado no disco. Limpando job.`);
-        jobs.delete(sessionId);
-        return res.status(404).json({ error: 'Sessão não encontrada (diretório inexistente).' });
-    }
-    next();
-};
 
 // =======================================================
 // ROTAS DA APLICAÇÃO
@@ -85,174 +57,218 @@ const validateSession = (req, res, next) => {
 router.get('/', (req, res) => res.render('index', { title: 'Ferramenta PDF & DOCX Completa' }));
 
 
-// --- Rotas de Sessão e Jobs ---
+// --- Rotas de Sessão e Jobs (V1 - Ferramentas) ---
 router.post('/session/create', (req, res) => {
     const sessionId = uuidv4();
-    const sessionPath = path.join(uploadDir, sessionId);
-    try {
-        fs.mkdirSync(sessionPath, { recursive: true });
-        jobs.set(sessionId, { status: 'created', startTime: Date.now() });
-        console.log(`Sessão criada: ${sessionId}`);
-        res.status(201).json({ sessionId });
-    } catch (error) {
-         console.error(`Erro ao criar diretório para sessão ${sessionId}:`, error);
-         res.status(500).json({ error: 'Falha ao iniciar sessão no servidor.' });
-    }
+    jobs.set(sessionId, { status: 'created' });
+    res.status(201).json({ sessionId });
 });
 
-// Rota de Upload (NÃO usa jsonParser)
-router.post('/session/upload/:sessionId', validateSession, (req, res, next) => {
-    upload.single('file')(req, res, (err) => {
-        if (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    return res.status(400).json({ error: `Arquivo excede o limite de ${MAX_FILE_SIZE / 1024 / 1024}MB.` });
-                }
-                return res.status(400).json({ error: `Erro no upload: ${err.message}` });
-            } else if (err) {
-                 return res.status(400).json({ error: err.message || 'Erro durante o upload.' });
-            }
-             if (!req.file) {
-                return res.status(400).json({ error: 'Nenhum arquivo válido enviado.' });
-            }
-            console.log(`[${req.params.sessionId}] Arquivo recebido: ${req.file.filename}`);
-            res.status(200).json({ fileId: req.file.filename });
-        }
-    });
+router.post('/session/upload/:sessionId', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    res.status(200).json({ fileId: req.file.filename });
 });
 
-
-// Rota de Execução (USA jsonParser)
-router.post('/session/execute/:sessionId', validateSession, jsonParser, (req, res) => {
-    const { sessionId } = req.params;
-    const { tool, files, options } = req.body;
-
-    if (!tool || !files || !Array.isArray(files) || files.length === 0) {
-        return res.status(400).json({ error: 'Parâmetros inválidos: ferramenta e arquivos são obrigatórios.' });
-    }
-
-    const currentJob = jobs.get(sessionId);
-    if (currentJob.status === 'processing') {
-         console.warn(`[${sessionId}] Tentativa de executar job enquanto outro está processando.`);
-         return res.status(409).json({ error: 'Um processo já está em andamento para esta sessão.' });
-    }
-
-    jobs.set(sessionId, { ...currentJob, status: 'processing', tool: tool });
-    console.log(`[${sessionId}] Iniciando job '${tool}' com arquivos: ${files.join(', ')} | Opções:`, options || {});
-
-    processTool(sessionId, tool, files, options)
-        .then(outputFileName => {
-            console.log(`[${sessionId}] Job '${tool}' concluído. Saída: ${outputFileName}`);
-            jobs.set(sessionId, { ...jobs.get(sessionId), status: 'complete', downloadUrl: `/download/${sessionId}/${outputFileName}` });
-        })
-        .catch(error => {
-            console.error(`[${sessionId}] Erro no job '${tool}':`, error.message);
-            jobs.set(sessionId, { ...jobs.get(sessionId), status: 'error', message: error.message || `Falha desconhecida em '${tool}'.` });
-        });
-
+router.post('/session/execute/:sessionId', (req, res) => {
+    const { tool, files } = req.body;
+    if (!jobs.has(req.params.sessionId)) return res.status(404).json({ error: 'Sessão não encontrada.' });
+    processJob(req.params.sessionId, tool, files);
     res.status(202).json({ message: 'Processamento iniciado.' });
 });
 
-// Rota de Status (NÃO usa jsonParser)
-router.get('/session/status/:sessionId', validateSession, (req, res) => {
+router.get('/session/status/:sessionId', (req, res) => {
     const job = jobs.get(req.params.sessionId);
+    if (!job) return res.status(404).json({ error: 'Trabalho não encontrado.' });
     res.status(200).json(job);
 });
 
-// Rota de Download (NÃO usa jsonParser)
-router.get('/download/:sessionId/:fileName', validateSession, (req, res) => {
+router.get('/download/:sessionId/:fileName', (req, res) => {
     const { sessionId, fileName } = req.params;
-    const sessionPath = path.join(uploadDir, sessionId);
-    const filePath = path.join(sessionPath, fileName);
-
-    if (!filePath.startsWith(uploadDir)) {
-         console.error(`[${sessionId}] Tentativa de download inválida (Path Traversal?): ${fileName}`);
-         return res.status(400).send('Caminho de arquivo inválido.');
-    }
-
+    const filePath = path.join(uploadDir, sessionId, fileName);
     if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        console.log(`[${sessionId}] Iniciando download de ${fileName} (${stats.size} bytes)`);
-
-        const cleanupCallback = (err) => {
-            if (err) {
-                 if (err.code === 'ECONNRESET' || err.message.includes('client closed request')) {
-                      console.log(`[${sessionId}] Download de ${fileName} interrompido pelo cliente.`);
-                 } else {
-                      console.error(`[${sessionId}] Erro durante o envio do download de ${fileName}:`, err);
-                 }
-            } else {
-                 console.log(`[${sessionId}] Download de ${fileName} concluído. Limpando sessão.`);
-                 fs.rm(sessionPath, { recursive: true, force: true }, (rmErr) => {
-                     if (rmErr) console.error(`[${sessionId}] Erro ao limpar pasta da sessão:`, rmErr);
-                 });
-                 jobs.delete(sessionId);
+        res.download(filePath, fileName, (err) => {
+            if (!err) {
+                fs.rm(path.join(uploadDir, sessionId), { recursive: true, force: true }, () => {});
+                jobs.delete(sessionId);
             }
-        };
-
-        const originalName = cleanOriginalFileName(fileName);
-        res.download(filePath, originalName || fileName, cleanupCallback);
-
+        });
     } else {
-        console.warn(`[${sessionId}] Tentativa de download falhou: Arquivo não encontrado ${filePath}`);
         res.status(404).send('Arquivo não encontrado ou a sessão expirou.');
     }
 });
 
-
-// Rota Síncrona PDF->DOC Simples (NÃO usa jsonParser)
-router.post('/pdftodocxsimple', multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_SIZE } }).single('file'), async (req, res) => {
+// Rota Síncrona (Rápida)
+router.post('/pdf-para-docx', multer({ storage: multer.memoryStorage() }).single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     try {
-        const pdfParse = require('pdf-parse');
         const data = await pdfParse(req.file.buffer);
         const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><p>${data.text.replace(/\n/g, '<br>')}</p></body></html>`;
-        const originalNameClean = (req.file.originalname || 'documento').replace(/[^a-zA-Z0-9.\-_]/g, '_').replace(/\.pdf$/i, '');
-        const docFileName = `${originalNameClean}.doc`;
-
+        const docFileName = req.file.originalname.replace(/\.pdf$/, '.doc');
         res.setHeader('Content-Type', 'application/msword');
-        res.setHeader('Content-Disposition', `attachment; filename="${docFileName}"`);
+        res.setHeader('Content-Disposition', `attachment; filename=${docFileName}`);
         res.send(htmlContent);
     } catch (error) {
-        console.error("Erro na conversão PDF->DOC (simples):", error);
         res.status(500).json({ error: 'Ocorreu um erro ao extrair texto do PDF.' });
     }
 });
 
-// ROTAS WOPI (sem alterações)
-router.get('/editor/:fileName', (req, res) => { /* ... */ });
-router.get('/wopi/files/:fileName', (req, res) => { /* ... */ });
-router.get('/wopi/files/:fileName/contents', (req, res) => { /* ... */ });
-router.post('/wopi/files/:fileName/contents', (req, res) => { /* ... */ });
 
-// Limpeza de jobs em memória
-function cleanupExpiredJobs() {
-    const now = Date.now();
-    let cleanedCount = 0;
-    for (const [sessionId, job] of jobs.entries()) {
-        const age = now - (job.startTime || 0);
-        if (age > SESSION_TIMEOUT_MS) {
-             if (job.status !== 'complete' && job.status !== 'error') {
-                 console.log(`[Cleanup] Removendo job '${job.status || 'unknown'}' expirado: ${sessionId}`);
-                 jobs.delete(sessionId);
-                 cleanedCount++;
-             } else if (age > SESSION_TIMEOUT_MS * 2) {
-                  console.log(`[Cleanup] Removendo job finalizado antigo ('${job.status}'): ${sessionId}`);
-                  jobs.delete(sessionId);
-                  cleanedCount++;
-             }
+// --- ROTAS PARA O EDITOR V2 (WOPI INTEGRATION) ---
+router.get('/editor/:fileName', (req, res) => {
+    const { fileName } = req.params;
+    const wopiClientUrl = `${process.env.APP_PUBLIC_URL}/wopi/files/${fileName}`;
+    const accessToken = 'token_para_teste_seguro';
+
+    res.render('editor', { 
+        title: `Editando: ${fileName}`,
+        wopiClientUrl: wopiClientUrl,
+        accessToken: accessToken
+    });
+});
+
+// API WOPI: Fornece informações do arquivo para o Collabora
+router.get('/wopi/files/:fileName', (req, res) => {
+    const { fileName } = req.params;
+    const filePath = path.join(documentsDir, fileName);
+
+    if (!fs.existsSync(filePath)) {
+        const templatePath = path.join(__dirname, '..', 'template-vazio.docx');
+        if (fs.existsSync(templatePath)) {
+            fs.copyFileSync(templatePath, filePath);
+        } else {
+            fs.writeFileSync(filePath, ''); 
         }
     }
-    if(cleanedCount > 0) console.log(`[Cleanup] Limpeza de memória de jobs concluída. Removidos: ${cleanedCount}`);
-}
-setInterval(cleanupExpiredJobs, SESSION_TIMEOUT_MS / 2);
 
-// Helper para pegar nome original limpo
-function cleanOriginalFileName(fileName) {
-     if (!fileName) return '';
-     let baseName = fileName.replace(/^\d{13}-/, '');
-     baseName = baseName.replace(/_(unido|comprimido|pdfa|separado|jpg|convertido|ods|pdf|docx|protegido)_[a-f0-9]+(\.\w+)$/i, '$2');
-     return baseName;
+    try {
+        const stats = fs.statSync(filePath);
+        res.json({
+            BaseFileName: fileName,
+            OwnerId: 'admin',
+            Size: stats.size,
+            UserId: 'user',
+            Version: stats.mtime.getTime().toString(),
+            UserCanWrite: true,
+            SupportsUpdate: true,
+        });
+    } catch (error) {
+         res.status(404).send('Arquivo não encontrado');
+    }
+});
+
+// API WOPI: Fornece o conteúdo do arquivo para o Collabora
+router.get('/wopi/files/:fileName/contents', (req, res) => {
+    const { fileName } = req.params;
+    const filePath = path.join(documentsDir, fileName);
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('Arquivo não encontrado');
+    }
+});
+
+// API WOPI: Recebe o conteúdo atualizado do Collabora e salva
+router.post('/wopi/files/:fileName/contents', (req, res) => {
+    const { fileName } = req.params;
+    const filePath = path.join(documentsDir, fileName);
+    
+    const stream = fs.createWriteStream(filePath);
+    req.pipe(stream);
+    stream.on('finish', () => res.sendStatus(200));
+    stream.on('error', () => res.sendStatus(500));
+});
+
+
+// =======================================================
+// LÓGICA DE PROCESSAMENTO EM SEGUNDO PLANO (V1 - Ferramentas)
+// =======================================================
+async function processJob(sessionId, tool, files) {
+    jobs.set(sessionId, { status: 'processing' });
+    const sessionPath = path.join(uploadDir, sessionId);
+
+    try {
+        let outputFileName;
+        // **CORREÇÃO APLICADA:** Usa aspas simples para "escapar" nomes de arquivos
+        const inputFile = files ? `'${path.join(sessionPath, files[0])}'` : null;
+        const outputFile = `'${path.join(sessionPath, `output_${sessionId}.tmp`)}'`;
+        const baseFileName = files ? cleanFileName(files[0]) : '';
+
+        switch (tool) {
+            case 'unir-pdf':
+                outputFileName = `unido_${sessionId}.pdf`;
+                const mergedPdf = await PDFDocument.create();
+                for (const fileName of files) {
+                    const fileBuffer = fs.readFileSync(path.join(sessionPath, fileName));
+                    const pdf = await PDFDocument.load(fileBuffer);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach(page => mergedPdf.addPage(page));
+                }
+                fs.writeFileSync(path.join(sessionPath, outputFileName), await mergedPdf.save());
+                break;
+            
+            case 'comprimir-pdf':
+                outputFileName = baseFileName.replace(/\.pdf$/i, `_comprimido_${sessionId}.pdf`);
+                await runExec(`gs -dSAFER -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=${outputFile} ${inputFile}`);
+                fs.renameSync(outputFile.replace(/'/g, ''), path.join(sessionPath, outputFileName));
+                break;
+
+            case 'docx-para-pdf':
+                outputFileName = baseFileName.replace(/\.docx?$/i, `_${sessionId}.pdf`);
+                const { value: html } = await mammoth.convertToHtml({ path: inputFile.replace(/'/g, '') }); // mammoth não precisa de aspas
+                const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+                const page = await browser.newPage();
+                await page.setContent(html, { waitUntil: 'networkidle0' });
+                fs.writeFileSync(path.join(sessionPath, outputFileName), await page.pdf({ format: 'A4', printBackground: true, margin: { top: '2.5cm', right: '2.5cm', bottom: '2.5cm', left: '2.5cm' } }));
+                await browser.close();
+                break;
+
+            case 'pdf-para-pdfa':
+                outputFileName = baseFileName.replace(/\.pdf$/i, `_pdfa_${sessionId}.pdf`);
+                const gsDefPath = `'/usr/share/ghostscript/10.00.0/lib/PDFA_def.ps'`; // Caminho do Ghostscript v10.x
+                await runExec(`gs -dPDFA=2 -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sColorConversionStrategy=UseDeviceIndependentColor -sOutputFile=${outputFile} ${gsDefPath} ${inputFile}`);
+                fs.renameSync(outputFile.replace(/'/g, ''), path.join(sessionPath, outputFileName));
+                break;
+
+            case 'pdf-para-jpg':
+                outputFileName = baseFileName.replace(/\.pdf$/i, `_jpg_${sessionId}.zip`);
+                const jpgOutputDir = path.join(sessionPath, 'jpg_output');
+                fs.mkdirSync(jpgOutputDir, { recursive: true });
+                await runExec(`pdftoppm -jpeg ${inputFile} '${path.join(jpgOutputDir, 'page')}'`);
+                await zip(jpgOutputDir, path.join(sessionPath, outputFileName));
+                break;
+            
+            case 'jpg-para-pdf':
+            case 'png-para-pdf':
+                outputFileName = `convertido_${sessionId}.pdf`;
+                const inputFilePaths = files.map(f => `'${path.join(sessionPath, f)}'`).join(' ');
+                await runExec(`convert ${inputFilePaths} '${path.join(sessionPath, outputFileName)}'`);
+                break;
+
+            case 'separar-pdf':
+                outputFileName = baseFileName.replace(/\.pdf$/i, `_separado_${sessionId}.zip`);
+                const splitOutputDir = path.join(sessionPath, 'split_output');
+                fs.mkdirSync(splitOutputDir, { recursive: true });
+                const originalPdf = await PDFDocument.load(fs.readFileSync(inputFile.replace(/'/g, '')));
+                for (let i = 0; i < originalPdf.getPageCount(); i++) {
+                    const newPdf = await PDFDocument.create();
+                    const [copiedPage] = await newPdf.copyPages(originalPdf, [i]);
+                    newPdf.addPage(copiedPage);
+                    fs.writeFileSync(path.join(splitOutputDir, `pagina_${i + 1}.pdf`), await newPdf.save());
+                }
+                await zip(splitOutputDir, path.join(sessionPath, outputFileName));
+                break;
+            
+            default:
+                throw new Error(`Ferramenta '${tool}' desconhecida.`);
+        }
+        
+        jobs.set(sessionId, { status: 'complete', downloadUrl: `/download/${sessionId}/${outputFileName}` });
+
+    } catch (error) {
+        console.error(`Erro no trabalho ${sessionId} (${tool}):`, error);
+        jobs.set(sessionId, { status: 'error', message: `Falha em '${tool}'. Verifique o arquivo e tente novamente.` });
+    }
 }
 
 module.exports = router;
+

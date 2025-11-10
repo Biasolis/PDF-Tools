@@ -7,13 +7,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware para processar corpos de requisição JSON
-// app.use(express.json()); // <-- REMOVIDO DAQUI! Este era o bug.
+app.use(express.json());
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
-
-// As rotas agora gerenciam seus próprios parsers de body
 app.use('/', pdfRoutes);
 
 // --- Rotina de Limpeza de Sessões Expiradas ---
