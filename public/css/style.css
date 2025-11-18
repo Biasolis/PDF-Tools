@@ -1,0 +1,316 @@
+/* public/css/style.css */
+
+/* --- Reset & Base --- */
+:root {
+    --primary-color: #2563eb; /* Azul padrão */
+    --primary-hover: #1d4ed8;
+    --bg-color: #f8fafc;
+    --text-color: #1e293b;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --success-color: #16a34a;
+    --error-color: #dc2626;
+    --text-muted: #64748b;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    flex: 1;
+}
+
+/* --- Header --- */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* A CORREÇÃO DO LOGO GIGANTE ESTÁ AQUI */
+.logo-img {
+    height: 50px; 
+    width: auto;
+    object-fit: contain;
+}
+
+.app-title {
+    border-left: 2px solid var(--border-color);
+    padding-left: 1.5rem;
+}
+
+.app-title h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #334155;
+}
+
+.app-title p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.btn-portal {
+    background-color: #334155;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-portal:hover {
+    background-color: #1e293b;
+}
+
+/* --- Grid & Cards --- */
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.tool-card {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* O card de unir PDF ocupa 2 colunas em telas grandes */
+.card-wide {
+    grid-column: span 1;
+}
+
+@media (min-width: 1024px) {
+    .card-wide {
+        grid-column: span 2;
+    }
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.icon-box {
+    padding: 0.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Cores dos ícones por tipo */
+.icon-blue { background: #dbeafe; color: #2563eb; }
+.icon-purple { background: #f3e8ff; color: #9333ea; }
+.icon-green { background: #dcfce7; color: #16a34a; }
+.icon-teal { background: #ccfbf1; color: #0d9488; }
+.icon-red { background: #fee2e2; color: #dc2626; }
+.icon-cyan { background: #cffafe; color: #0891b2; }
+.icon-yellow { background: #fef9c3; color: #ca8a04; }
+
+.tool-card h2 { margin: 0; font-size: 1.25rem; color: #334155; }
+.tool-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5; }
+
+/* --- Inputs & Buttons --- */
+.file-input-group {
+    margin-bottom: 1rem;
+}
+
+input[type="file"] {
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    padding: 0.5rem;
+    background: #f1f5f9;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-action {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: filter 0.2s;
+    font-size: 1rem;
+}
+
+.btn-action:hover { filter: brightness(90%); }
+.btn-action:disabled { background-color: #cbd5e1 !important; cursor: not-allowed; }
+
+/* Cores dos botões */
+.btn-blue { background-color: var(--primary-color); }
+.btn-purple { background-color: #9333ea; }
+.btn-green { background-color: #16a34a; }
+.btn-teal { background-color: #0d9488; }
+.btn-red { background-color: #dc2626; }
+.btn-cyan { background-color: #0891b2; }
+.btn-yellow { background-color: #ca8a04; }
+
+/* --- Preview Area (Unir PDF) --- */
+#pdf-preview-area {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    min-height: 150px;
+    margin-bottom: 1.5rem;
+}
+
+.preview-card {
+    position: relative;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: grab;
+}
+
+.preview-card canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.preview-card p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.75rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Status & Progress --- */
+.status-container {
+    margin-top: 1rem;
+    min-height: 2rem;
+    text-align: center;
+}
+
+.progress-container {
+    width: 100%;
+    background-color: #e2e8f0;
+    border-radius: 999px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    display: none; /* Controlado via JS */
+}
+
+.progress-bar {
+    height: 100%;
+    transition: width 0.3s;
+}
+
+.status-text { font-size: 0.9rem; font-weight: 500; }
+.status-error { color: var(--error-color); }
+.status-success { color: var(--success-color); }
+.status-info { color: var(--text-muted); }
+
+/* Loader Animado */
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 8px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- Footer --- */
+.main-footer {
+    margin-top: auto;
+    padding: 3rem 1rem 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Utilitários Gerais */
+.hidden { display: none !important; }
+.upload-label {
+    display: inline-block;
+    background: white;
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #334155;
+}
+.upload-label:hover { background: #f1f5f9; }
+.cursor-not-allowed { cursor: not-allowed; opacity: 0.6; }
+
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #e2e8f0;
+}
