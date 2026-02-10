@@ -1,0 +1,14 @@
+version: '3.8' # Adicionado para boas práticas
+
+services:
+  pdf-tools:
+    build: .
+    ports: # Linha adicionada para expor a porta
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    shm_size: '2gb'
+    environment:
+      - NODE_ENV=production
+    restart: always

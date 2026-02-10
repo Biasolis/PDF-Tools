@@ -1,0 +1,89 @@
+<%- include('partials/header'); %>
+
+<div class="tools-grid">
+    
+    <section id="unir-pdf-card" class="tool-card card-wide">
+        <div class="icon-box" style="background: rgba(37, 99, 235, 0.2); color: #60a5fa;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </div>
+        <h2>Unir PDFs</h2>
+        <p>Arraste múltiplos arquivos PDF para esta área e organize a ordem das páginas facilmente.</p>
+        
+        <div id="pdf-preview-area"></div>
+
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <label for="unir-pdf-input" class="file-label" style="flex: 2; min-width: 200px;">
+                + Adicionar Arquivos
+            </label>
+            <input type="file" id="unir-pdf-input" multiple accept=".pdf">
+            
+            <button id="unir-pdf-button" class="btn-action" style="flex: 1; min-width: 150px; margin:0;" disabled>
+                Unir PDFs
+            </button>
+        </div>
+        <div id="unir-pdf-status" class="status-container"></div>
+    </section>
+
+    <section id="comprimir-pdf-card" class="tool-card">
+        <div class="icon-box" style="background: rgba(147, 51, 234, 0.2); color: #c084fc;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <h2>Comprimir PDF</h2>
+        <p>Reduza o tamanho do arquivo mantendo a qualidade legível.</p>
+        <label for="comprimir-pdf-input" class="file-label">Escolher Arquivo</label>
+        <input type="file" id="comprimir-pdf-input" accept=".pdf">
+        <button id="comprimir-pdf-button" class="btn-action">Otimizar Agora</button>
+        <div id="comprimir-pdf-status" class="status-container"></div>
+    </section>
+
+    <section id="docx-para-pdf-card" class="tool-card">
+        <div class="icon-box" style="background: rgba(22, 163, 74, 0.2); color: #4ade80;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        </div>
+        <h2>DOCX para PDF</h2>
+        <p>Converta documentos Word preservando toda a formatação original.</p>
+        <label for="docx-para-pdf-input" class="file-label">Escolher Arquivo</label>
+        <input type="file" id="docx-para-pdf-input" accept=".docx">
+        <button id="docx-para-pdf-button" class="btn-action">Converter</button>
+        <div id="docx-para-pdf-status" class="status-container"></div>
+    </section>
+
+    <section id="pdf-para-docx-card" class="tool-card">
+        <div class="icon-box" style="background: rgba(37, 99, 235, 0.2); color: #60a5fa;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        </div>
+        <h2>PDF para DOCX</h2>
+        <p>Extraia o conteúdo de arquivos PDF para documentos Word editáveis.</p>
+        <label for="pdf-para-docx-input" class="file-label">Escolher Arquivo</label>
+        <input type="file" id="pdf-para-docx-input" accept=".pdf">
+        <button id="pdf-para-docx-button" class="btn-action">Extrair Texto</button>
+        <div id="pdf-para-docx-status" class="status-container"></div>
+    </section>
+
+    <section id="pdf-para-jpg-card" class="tool-card">
+        <div class="icon-box" style="background: rgba(202, 138, 4, 0.2); color: #facc15;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        </div>
+        <h2>PDF para JPG</h2>
+        <p>Transforme cada página do seu documento em uma imagem JPG separada.</p>
+        <label for="pdf-para-jpg-input" class="file-label">Escolher Arquivo</label>
+        <input type="file" id="pdf-para-jpg-input" accept=".pdf">
+        <button id="pdf-para-jpg-button" class="btn-action">Gerar Imagens</button>
+        <div id="pdf-para-jpg-status" class="status-container"></div>
+    </section>
+
+    <section id="separar-pdf-card" class="tool-card">
+        <div class="icon-box" style="background: rgba(13, 148, 136, 0.2); color: #2dd4bf;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a2 2 0 000 2.828L11.879 19m-7-7l2.879-2.879a2 2 0 012.828 0L12.121 12"></path></svg>
+        </div>
+        <h2>Separar PDF</h2>
+        <p>Extraia todas as páginas do seu arquivo de forma individual e organizada.</p>
+        <label for="separar-pdf-input" class="file-label">Escolher Arquivo</label>
+        <input type="file" id="separar-pdf-input" accept=".pdf">
+        <button id="separar-pdf-button" class="btn-action">Separar Páginas</button>
+        <div id="separar-pdf-status" class="status-container"></div>
+    </section>
+
+</div>
+
+<%- include('partials/footer'); %>
